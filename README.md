@@ -11,7 +11,7 @@ giving the training a run identification.<br>
 <br>
 To evaluate the model, we run
 
-`python3 main.py -m evaluate -r [specific run id] -s [sample size] ...`
+`python3 main.py -m evaluate -r [specific run id] -s [sample size] --device [GPU_device]...`
 
 again specifying the run id to evaluate as well as the sample size of the analyzed samples.
 
