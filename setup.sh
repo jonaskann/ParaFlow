@@ -1,1 +1,0 @@
-source /net/software/deep-learning/virtualenv/python3.9/pytorch2.0.1/bin/activate

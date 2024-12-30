@@ -1,1 +1,0 @@
-source /net/data_cms3a-1/kann/public/virtualenv/clustering/bin/activate
