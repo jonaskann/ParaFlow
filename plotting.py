@@ -25,7 +25,7 @@ def chi2(hist1, hist2):
         return np.sum((((hist1 - hist2) ** 2) / (error + epsilon)**2)) / n_bins
 
 
-def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_color, title, x_label, y_label, filename, result_path, data_conditions, sample_conditions, xlim = None, ylim = None, calc_std = False, thickness_range = None, distance_range = None, bin_comparison_thickness = False, bin_comparison_distance = False, log_yscale = False):
+def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_color, title, x_label, y_label, filename, result_path, data_conditions, sample_conditions, xlim = None, ylim = None, calc_std = False, thickness_range = None, distance_range = None, bin_comparison_thickness = False, bin_comparison_distance = False, log_yscale = False, hist_overflow = True):
 
     ''' Function for plotting the histogram of various quantities including the comparison histograms.'''
 
@@ -35,9 +35,23 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
     hist_samples, _ = np.histogram(data_samples, bins = bin_edges)
     hist_data, _            = np.histogram(data_geant4, bins = bin_edges)
 
+    # Add histogram overflow if specified
+    if ( hist_overflow ):
+
+        overflow_samples = np.sum(data_samples > bin_edges[-1])
+        overflow_data    = np.sum(data_geant4  > bin_edges[-1])
+
+        underflow_samples = np.sum(data_samples < bin_edges[0])
+        underflow_data    = np.sum(data_geant4  < bin_edges[0])
+
+        hist_samples[0] += underflow_samples
+        hist_data[0] += underflow_data
+
+        hist_samples[-1] += overflow_samples
+        hist_data[-1] += overflow_data
+
 
     ### Statistical scores ###
-
     chi2_value = chi2(hist1=hist_data, hist2=hist_samples)
 
     # Kolmogorov-Smirnov test
@@ -65,7 +79,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
 
     # Histogram bars of Geant4 data
-    ax1.fill_between(bin_centers, hist_data, step='mid', color=plot_color, alpha = 0.7, label = r"MC", edgecolor = 'black')
+    ax1.fill_between(np.append(bin_centers, (bin_centers[-1] + (bin_centers[-1] - bin_centers[-2]))), np.append(hist_data, 0), step='mid', color=plot_color, alpha = 0.7, label = r"MC", edgecolor = 'black')
 
     # Uncertainties as grid patches
     uncertainties_data = np.sqrt(hist_data)

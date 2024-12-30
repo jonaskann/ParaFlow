@@ -407,7 +407,7 @@ class Judge:
 
 
         # plot using the function in plotting.py
-        plot_histogram(shower_width_samples, shower_width_data, bin_centers = np.arange(0.25, 2.56, 2.30 / 30),  plot_color = self.plot_color, error_color = self.error_color, title = 'Shower~Width', x_label = 'Shower Width [Crystal Width]', y_label = 'Events', filename = 'histogram_shower_width', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
+        plot_histogram(shower_width_samples, shower_width_data, bin_centers = np.arange(0.25, 2.75, 2.25 / 30),  plot_color = self.plot_color, error_color = self.error_color, title = 'Shower~Width', x_label = 'Shower Width [Crystal Width]', y_label = 'Events', filename = 'histogram_shower_width', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
         if (self.thickness_bin is None and self.distance_bin is None): plot_2d_parameterspace(shower_width_data, shower_width_samples, self.conditions, self.sample_conditions, title='Shower~Width', colorbar_label='Shower Width [Crystal Width]', result_path=self.result_path, bins = 10, file_name='2d_plot_shower_width')
 
 
