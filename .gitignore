@@ -1,0 +1,14 @@
+# ignore MAC OS files
+.DS_Store
+
+
+# pycache directories
+__pycache__/
+*/__pycache__
+
+# bash scripts
+# *.sh
+
+# Images
+Images/
+*.pdf

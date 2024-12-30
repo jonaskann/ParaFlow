@@ -5,29 +5,24 @@ import os
 
 
 class SimData(torch.utils.data.Dataset):
-    """ 
+    ''' 
     Class for our custom dataset to be implemented with pytorchs DataLoader 
-    Args:       root_dir - Directory of datasets
-                particle - Specify the type of particle(s) in dataset
+    Args:       data_dir - Directory of datasets
                 mode - Specify purpose of dataset (training, validation or testing)
                 transforms - The transformations on the dataset
     
-    """
+    '''
 
-    def __init__(self, root_dir, particle, mode, transforms):
+    def __init__(self, data_dir, mode, transforms):
 
-        assert particle in ("photon", "pion", "both"), "Please chose particle type to be 'photon', 'pion' or 'both'."
         assert mode in ("train", "test", "validation"), "Please chose mode to be 'train', 'test' or 'validation'."
 
-        # if both set particle to "" for loading below
-        if (particle == "both") : particle = ""
-
-        self.root_dir               = root_dir
+        self.data_dir               = data_dir
         self.transforms             = transforms
         self.mode                   = mode
-        self.images                 = np.load(self.root_dir + self.mode + "_img_" + particle + ".npy")
-        self.labels                 = np.load(self.root_dir + self.mode + "_labels_" + particle + ".npy")
-        self.conditions             = np.load(self.root_dir + self.mode + "_conditions_" + particle + ".npy")
+        self.images                 = np.load(self.data_dir + self.mode + "_img_" + ".npy")
+        self.labels                 = np.load(self.data_dir + self.mode + "_labels_" + ".npy")
+        self.conditions             = np.load(self.data_dir + self.mode + "_conditions_" + ".npy")
 
     def __len__(self):
         return len(self.conditions)
@@ -51,7 +46,8 @@ class SimData(torch.utils.data.Dataset):
 
 
 class ToTensor(object):
-    """ Convert the numpy arrays to torch tensors. """
+
+    ''' Convert the numpy arrays to torch tensors. '''
 
     def __call__(self, sample):
 
@@ -62,49 +58,9 @@ class ToTensor(object):
         return mod_sample
     
 
-class BinaryLabels(object):
-    """ Converts the string labels of the images to a binary variable (0 for photon, 1 for pion). """
-
-    def __call__(self, sample):
-
-        labels = sample['labels'].copy()
-
-        binary_labels = np.where(np.char.startswith(labels, 'pion'), 1, 0)
-
-        sample['labels'] = binary_labels
-
-        return sample
-    
-class DownSample(object):
-    """ Downsamples the images from 24 x 24 to lower resolution by summing the values of neigboring pixels """
-
-    def __init__(self, input_size, output_size):
-
-        self.input_size = input_size
-
-        assert input_size % output_size == 0, "New size should be divisor of old size (24). "
-        self.output_size = output_size
-
-
-    def __call__(self, sample):
-
-        images = sample['images'].copy()
-
-        # Calculate the block size for summation
-        block_size = self.input_size // self.output_size
-        
-        reshaped_image = images.reshape(self.output_size, block_size, self.output_size, block_size)
-        
-        # Sum over the second and fourth dimensions (neighboring pixels)
-        downsized_image = reshaped_image.sum(axis=(1, 3))
-        
-        sample['images'] = downsized_image
-
-        return sample
-    
-
 class FlattenImage(object):
-    """ Class for flattening the images as input of the normalizing flows """
+
+    ''' Class for flattening the images as input of the normalizing flows. '''
 
     def __init__(self, n_features):
 
@@ -122,33 +78,19 @@ class FlattenImage(object):
 
 
 class NormalizeImage(object):
-    """ A class for normalizing the image to [0,1]. """
 
-    def __init__(self, noise : bool):
+    ''' A class for normalizing the image to [0,1]. '''
+
+    def __init__(self):
 
         self.epsilon  = 1e-8
-        self.noise = noise
 
     def __call__(self, sample):
 
         images, conditions = sample['images'].copy(), sample['conditions'].copy()
 
-        # add 1000 as 6 * std to make sure the values are still positive (deducted in postprocessing)
-        if self.noise: images += (6 * conditions[3])
-
-
         # normalize images based on energy condition
         norm_images = np.divide(images, conditions[0])
-
-
-        # little check if we still have zero value pixels
-        if (np.sum(norm_images < 0) > 0): print("Alert, value(s):", norm_images[norm_images < 0])
-        if (np.sum(norm_images > 1) > 0): print("Alert, value(s):", norm_images[norm_images > 1])
-
-
-
-        # make sure its between 0 and 1
-        #clipped_images = np.clip(norm_images, a_min = 0, a_max = 1)
 
         sample['images'] = norm_images
 
@@ -157,11 +99,13 @@ class NormalizeImage(object):
 
 
 def condition_scaling(condition, lower_bound, higher_bound, use_torch = True):
-    ''' Scale the connditions of an abritatry range to a [-1, 1] range using logarithmic transformation '''
+
+    ''' Scale the conditions of an abritatry range to a [-1, 1] range using logarithmic transformation '''
 
     to_subtract = lower_bound - 1
     new_higher_bound = higher_bound - to_subtract
 
+    # to cases wether calculation is performed using torch or numpy
     if use_torch:
         y = 2 * (torch.log(condition - to_subtract)/(torch.log(torch.Tensor([new_higher_bound])))) - 1
     else:
@@ -172,33 +116,27 @@ def condition_scaling(condition, lower_bound, higher_bound, use_torch = True):
 
 
 class LogitTransformation(object):
-    """ Class for performing Logit transformation as in CaloFlow [https://arxiv.org/abs/2106.05285]"""
 
-    def __init__(self, noise : bool, alpha = 6.7e-3):
+    ''' Class for performing Logit transformation as in CaloFlow [https://arxiv.org/abs/2106.05285]'''
+
+    def __init__(self, noise : bool, alpha = 1e-6):
 
         self.alpha = alpha
-        self.noise = noise
 
     def __call__(self, sample):
 
         images, conditions = sample['images'].copy(), sample['conditions'].copy()
 
         # logit transformation of the images
-        u = self.alpha + (1 - 2*self.alpha) * images
+        u = self.alpha + (1 - 2 * self.alpha) * images
         u_logit = np.log(u / (1 - u))
 
-        # logit transformation of the conditions
+        # logit transformation of the conditions (energy first scaled to GeV)
         energy_logit = condition_scaling(conditions[0]/1000, lower_bound = 20, higher_bound = 100, use_torch = False) # first convert to GeV
-        shielding = condition_scaling(conditions[1], lower_bound=0.5, higher_bound=1.5, use_torch=False)
+        thickness = condition_scaling(conditions[1], lower_bound=0.5, higher_bound=1.5, use_torch=False)
         distance = condition_scaling(conditions[2], lower_bound=50, higher_bound=90, use_torch=False)
-
-        if self.noise: 
-            std_logit = np.log10(conditions[3]/10)
-            conditions_logit = np.array([energy_logit, shielding, distance, std_logit])
-        else:
-            conditions_logit = np.array([energy_logit, shielding, distance])
-
-
+                                     
+        conditions_logit = np.array([energy_logit, thickness, distance])
 
 
         sample['images'] = u_logit
@@ -209,9 +147,10 @@ class LogitTransformation(object):
 
 
 class AddNoise(object):
-    """ Class for performing Logit transformation as in CaloFlow [https://arxiv.org/abs/2106.05285]"""
 
-    def __init__(self, active = True, noise_level = 1e-3, generator = None):
+    ''' Class adding low energy noise as in CaloFlow [https://arxiv.org/abs/2106.05285]. '''
+
+    def __init__(self, active = True, noise_level = 1e-6, generator = None):
 
         self.active = active
         self.noise_level = noise_level
@@ -229,8 +168,10 @@ class AddNoise(object):
 
         return sample
     
+
+    
 class AddWeights(object):
-    ''' Class for adding weights depending on the value of the condition. '''
+    ''' Class for adding weights depending on the values of the conditions. DISCLAIMER: Currently not used. '''
 
     def __init__(self, active = False, max_weighting = 0.05):
 
@@ -252,11 +193,11 @@ class AddWeights(object):
         min_distance  = 50
         max_distance  = 90
 
-        # calculate the additional weight factor [0, 0.1]
-        thickness_factor = (conditions_thickness - min_thickness) / (max_thickness + min_thickness) * self.max_weighting
-        distance_factor = (conditions_distance - min_distance) / (max_distance + min_distance) * self.max_weighting
+        # calculate the additional weight factor [0, 0.1] for low values of the condition
+        thickness_factor    = ( (conditions_thickness - min_thickness) / (max_thickness + min_thickness) ) * self.max_weighting
+        distance_factor     = ( (conditions_distance - min_distance) / (max_distance + min_distance) ) * self.max_weighting
 
-        # original weight
+        # original weights
         weights = np.ones(shape = (1,)) 
 
         if self.active:
@@ -268,7 +209,9 @@ class AddWeights(object):
 
         return sample
 
-def postprocessing(sample, E_inc, sample_size, image_size_x, image_size_y, threshold, noise = None, alpha = 6.7e-3):
+
+def postprocessing(sample, E_inc, sample_size, image_size_x, image_size_y, threshold, alpha = 1e-6):
+
     ''' Function for postprocessing the averages '''
 
 
@@ -288,14 +231,47 @@ def postprocessing(sample, E_inc, sample_size, image_size_x, image_size_y, thres
     # reverse normalization
     sample = sample * ( E_inc.view(-1,1) )
 
-    if noise is not None:
-        sample = sample - (6 * noise.view(-1,1))
-
     # reshape the image
     sample = sample.reshape(sample_size, image_size_x, image_size_y, 1)
 
-    # cut out beneath threshold (if we did not train with noise)
-    if noise is None:
-        sample[sample < threshold] = 0
+    # cut out beneath threshold (because of noise applied in preprocessing)
+    sample[sample < threshold] = 0
 
     return sample
+
+
+def load_test_data(data_path, sample_size, thickness_range, distance_range, threshold):
+
+    ''' Function for loading the data of specified size and possibly specified parameter range. '''
+
+    data_img = np.load(data_path + "test_img_" + ".npy")
+    data_conditions = np.load(data_path + "test_conditions_" + ".npy")
+
+    ## set threshold for sparsity plots
+    data_img[data_img < threshold] = 0
+
+
+    # subselect specified thickness range
+    lower_bound, higher_bound = thickness_range[0], thickness_range[1]
+
+    mask_thickness = (data_conditions[:,1] >= lower_bound) & (data_conditions[:,1] <= higher_bound)
+
+    data_img = data_img[mask_thickness]
+    data_conditions  = data_conditions[mask_thickness]
+
+    # subselect specified thickness range
+    lower_bound, higher_bound = distance_range[0], distance_range[1]
+
+    mask_distance = (data_conditions[:,2] > lower_bound) & (data_conditions[:,2] < higher_bound)
+
+    data_img = data_img[mask_distance]
+    data_conditions  = data_conditions[mask_distance]
+
+    assert sample_size >= len(data_img), "Specified sample size is bigger than GEANT4 testset."
+
+    # select subset (according to sample size) of data
+    data = data_img[:sample_size]
+    conditions = conditions[:sample_size]
+
+
+    return data, conditions

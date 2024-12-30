@@ -1,12 +1,18 @@
+'''
+This is the .py file containing the relevant functions of the GPU accelerated DBSCAN 
+algorithm and the visualisation of the clustering algorithm.
+'''
+
+
 import copy
 import numpy as np
 
-# for accelarated clustering
+# For accelarated clustering on GPU
 from cuml.cluster import DBSCAN
 import cupy as cp
 from time import time
 
-# plotting (of clusters)
+# Plotting (of clusters)
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -15,20 +21,6 @@ plt.rcdefaults()
 plt.style.use([hep.style.ROOT])
 from skimage.measure import find_contours
 
-
-######################## PARAMETERS #############################
-
-
-n = 10
-data_path = "/net/data_cms3a-1/kann/fast_calo_flow/data/shielding/"
-data = np.load(data_path + "test_img_photon.npy")[:n]
-
-n_images, height, width = data.shape
-
-plot_examples = True
-
-
-##################### HELPER FUNCTIONS #########################
 
 def clustering_single_image(image, eps=1.5, min_samples=2, threshold=200, visualize=False):
     '''
@@ -59,6 +51,7 @@ def clustering_single_image(image, eps=1.5, min_samples=2, threshold=200, visual
 
     # Visualization: Get a cluster map
     if visualize:
+
         # move cluster labels back to cpu
         labels_host = cp.asnumpy(labels) 
 
@@ -75,6 +68,13 @@ def clustering_single_image(image, eps=1.5, min_samples=2, threshold=200, visual
 
 
 def fix_contours(contour):
+
+    ''' 
+    Function for finding the correct contours using brute force. 
+    This is necessary since the find_contours function only find the points of the contour resulting in ugly 
+    contour lines going through the pixels.
+    '''
+
     y1, x1 = contour[0,:]
     new_contour = contour.copy()
     running_idx = 1
@@ -82,6 +82,8 @@ def fix_contours(contour):
     flag2 = False
     flag3 = False
     flag4 = False
+
+
     for idx, (y, x) in enumerate(contour[1:,:]):
         
 
@@ -96,7 +98,6 @@ def fix_contours(contour):
             flag3 = False
             flag4 = False
             running_idx += 1
-            print("Check1")
 
         elif (((y-y1) == -0.5) and ((x-x1) == -0.5)):
             if flag2:
@@ -109,7 +110,6 @@ def fix_contours(contour):
             flag3 = False
             flag4 = False
             running_idx += 1
-            print("Check2")
 
         elif (((y-y1) == +0.5) and ((x-x1) == +0.5)):
 
@@ -140,21 +140,18 @@ def fix_contours(contour):
         elif ((y-y1) == 1.5) and ((x-x1) == 1.5):
             new_contour = np.insert(new_contour,idx + running_idx, np.array([y1,x1 + 0.5], [y1 + 1, x1 + 0.5], [y1 + 1, x1 + 1.5]), axis = 0)
             running_idx += 3
-            print("Check3")
+
         elif ((y-y1) == 1.5) and ((x-x1) == -1.5):
             new_contour = np.insert(new_contour,idx + running_idx, np.array([y1 + 0.5,x1], [y1 + 0.5, x1 - 1], [y1 + 1.5, x1 - 1]), axis = 0)
             running_idx += 3
-            print("Check4")
 
         elif ((y-y1) == -1.5) and ((x-x1) == -1.5):
             new_contour = np.insert(new_contour,idx + running_idx, np.array([y1,x1 - 0.5], [y1 - 1, x1 - 0.5], [y1 -1, x1 - 1.5]), axis = 0)
             running_idx += 3
-            print("Check5")
 
         elif ((y-y1) == -1.5) and ((x-x1) == 1.5):
             new_contour = np.insert(new_contour,idx + running_idx, np.array([y1 - 0.5,x1], [y1 - 0.5, x1 + 1], [y1 - 1.5, x1 + 1]), axis = 0)
             running_idx += 3
-            print("Check6")
 
         x1, y1 = x, y
 
@@ -162,12 +159,9 @@ def fix_contours(contour):
 
     
 
-# Function to plot clusters with red borders
 def plot_clusters(image, cluster_map, num, title="Clusters in Calorimeter Image"):
 
-    '''
-    Function for plotting showers with clusters
-    '''
+    ''' Function for plotting showers with clusters marked red. '''
 
     fig = plt.figure(figsize=(6, 8))
 
@@ -191,10 +185,7 @@ def plot_clusters(image, cluster_map, num, title="Clusters in Calorimeter Image"
         contours = find_contours(mask.astype(float), level=0.5)  # Find contours for the cluster
         for contour in contours:
             # Scale the contour coordinates to match the image axes
-            print(contour)
             new_contour = fix_contours(np.asarray(contour))
-            #new_contour = contour
-            print(new_contour)
             plt.plot(new_contour[:, 1], new_contour[:, 0], color = 'red', lw = 5, label=f'Cluster {cluster_id}')  # Adjust axis direction
             
     cbar = fig.colorbar(im)
@@ -204,7 +195,11 @@ def plot_clusters(image, cluster_map, num, title="Clusters in Calorimeter Image"
     plt.axis('off')
     fig.savefig(f"Example_Cluster{num}.pdf", bbox_inches = 'tight')
 
+
+
 def clustering_batch(images, eps, min_samples, threshold):
+
+    ''' Function for clustering a batch of images. '''
 
     start_time = time()
     num_cluster = np.asarray([clustering_single_image(image, eps=eps, min_samples=min_samples, threshold=threshold)[0] for image in images])
@@ -214,14 +209,27 @@ def clustering_batch(images, eps, min_samples, threshold):
 
     return num_cluster
 
-##########################################################################################
+
+
+
 
 def main():
+
+    ''' Function for testing and plotting independent of the flow evaluation. '''
+
+    num_samples = 10   # number of samples to perform clustering
+    num_images = 5     # number of samples to plot 
+    data_path = "/net/data_cms3a-1/kann/fast_calo_flow/data/shielding/"
+    data = np.load(data_path + "test_img_photon.npy")[:num_samples]
+
+    n_images, height, width = data.shape
+
+    plot_examples = True
 
     if plot_examples:
 
         # Process a single example image for visualization
-        for index, random_index in enumerate(np.random.randint(low = 0, high = n, size = (50,))):
+        for index, random_index in enumerate(np.random.randint(low = 0, high = num_samples, size = (num_images,))):
             example_image = data[random_index]
             num_clusters, cluster_map = clustering_single_image(
                 example_image, eps=1.0, min_samples=1, threshold=400, visualize=True
@@ -232,6 +240,7 @@ def main():
                 plot_clusters(example_image, cluster_map, title=f"Found {num_clusters} Cluster(s)", num = index)
             else:
                 print("No clusters found in the example image.")
+
 
     # Batch process all images for cluster counts
     start_time = time()

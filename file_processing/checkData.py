@@ -1,3 +1,5 @@
+''' This .py file is responsible for checking the correctness of the data, considering the conditions and images'''
+
 import os
 import copy
 
@@ -16,26 +18,14 @@ plt.style.use([hep.style.CMS])
 data_path = '/net/scratch_cms3a/kann/fast_calo_flow/data/shielding_distance/'
 result_path = '/home/home1/institut_3a/kann/Desktop/fast-simulations/calo_sim/GEANT4/shield_distance_test/'
 
+# what part of the dataset to check
 mode = 'validation'
-test_particle = 'photon'
-test_noise = False
-if test_noise: data_path = data_path + "noise/"
 
 ################################################################################################################################
 
-def check_uniform_distribution(arr, condition, bins=50, range_min=25_000, range_max=100_000):
-    """
-    Check if the values of a numpy array are uniformly distributed between range_min and range_max.
+def check_uniform_distribution(arr, condition, bins=50, range_min=20_000, range_max=100_000):
     
-    Parameters:
-        arr (numpy.ndarray): Input array of values.
-        bins (int): Number of bins for the histogram.
-        range_min (float): Minimum value of the range.
-        range_max (float): Maximum value of the range.
-    
-    Returns:
-        None
-    """
+    ''' Check if the values of a numpy array are uniformly distributed between range_min and range_max. '''
 
     print("-"*80)
     print(f"{condition} - HISTOGRAM CHECK: ")
@@ -67,13 +57,11 @@ def check_uniform_distribution(arr, condition, bins=50, range_min=25_000, range_
     else:
         print("The array does not appear to be uniformly distributed.")
 
-################################################################################################################################
 
 
-
-images      = np.load(data_path + mode + '_img_' + test_particle + ".npy")
-conditions  = np.load(data_path + mode + '_conditions_' + test_particle + ".npy")
-labels      = np.load(data_path + mode + '_labels_' + test_particle + ".npy")
+images      = np.load(data_path + mode + '_img_'  + ".npy")
+conditions  = np.load(data_path + mode + '_conditions_'  + ".npy")
+labels      = np.load(data_path + mode + '_labels_' + ".npy")
 
 # Printing shapes
 print("Images shape:        ", images.shape)
@@ -85,7 +73,7 @@ print("Labels shape:        ", images.shape)
 print("\nMinimum of images: ", np.min(images))
 print("Maximum of images: ", np.max(images))
 
-# Check if energies are less than condition
+# Check if deposited energies are less than condition (initial particle energy)
 max_values = np.max(images, axis = (1,2))
 energy_condition = conditions[:,0]
 print(np.sum((max_values > energy_condition)))
@@ -114,14 +102,10 @@ print("Number of NaN values in labels:      ", number_nan_labels)
 # Check the values of the conditions by plotting a histogram of the distribution
 
 check_uniform_distribution(arr = conditions[:,0], condition = 'ENERGY', bins = 50, range_min=20_000, range_max=100_000)
-check_uniform_distribution(arr = conditions[:,1], condition = 'SHIELDING', bins = 50, range_min=0.5, range_max=1.5)
+check_uniform_distribution(arr = conditions[:,1], condition = 'THICKNESS', bins = 50, range_min=0.5, range_max=1.5)
 check_uniform_distribution(arr = conditions[:,2], condition = 'DISTANCE', bins = 50, range_min=50, range_max=90)
 
-if test_noise: check_uniform_distribution(arr = conditions[:,2], condition = 'NOISE', bins = 50, range_min=10., range_max=200.)
-
-
 # Plot examples
-
 random_int = np.random.randint(low = 0, high = images.shape[0] - 15)
 
 for i in range(random_int, random_int + 15):
@@ -164,8 +148,7 @@ for i in range(random_int, random_int + 15):
     cbar_neg.ax.yaxis.set_label_position('left')
     cbar_neg.ax.yaxis.tick_left()
 
-    if test_noise: ax.set_title(f"Energy: {int(conditions[i,0]/1000)}, Shielding: {conditions[i,1]}, Distance: {conditions[i,2]}", loc = 'left', pad = 35, fontsize = 15)
-    else: ax.set_title(f"Energy: {conditions[i,0]:.1f}, Shielding: {conditions[i,1]:.2f}, Distance: {conditions[i,2]:.2f}")
+    ax.set_title(f"Energy: {conditions[i,0]:.1f}, Thickness: {conditions[i,1]:.2f}, Distance: {conditions[i,2]:.2f}")
     plt.imshow(images[i], cmap = cmap, norm=norm)
 
     plt.savefig(result_path + f"test_image{i}.pdf")

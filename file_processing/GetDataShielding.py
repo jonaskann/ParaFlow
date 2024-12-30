@@ -1,3 +1,5 @@
+''' File for reading in the GEANT4 parquet files and saving the data in .npy files. '''
+
 import os
 import copy
 
@@ -16,41 +18,13 @@ plt.style.use([hep.style.CMS])
 
 
 
-############################ Helper functions ###################################
-
-
-def save_energy_grid_plot(energy_grid, filepath):
-    
-    ''' Function for plotting a shower shape image.'''
-
-    # colormaps modification
-    cmap = copy.copy(matplotlib.colormaps["viridis"])
-    cmap.set_under('w')
-
-
-    # Use LogNorm to apply logarithmic scaling to color mapping
-    norm = mcolors.LogNorm(vmin=1, vmax=100e3)
-
-
-    plt.imshow(energy_grid, norm = norm, cmap=cmap, interpolation="nearest")
-    plt.colorbar(label="Energy [MeV]")
-    plt.title("Energy Grid")
-    plt.xlabel("X-axis")
-    plt.ylabel("Y-axis")
-
-    # Save the plot to the specified filepath
-    plt.savefig(filepath)
-    plt.close()  # Close the plot to free up memory
-
-
-
+############################ Helper functions ##################################
 @numba.jit
 def find_shower_numba(LR, LR_dim, window_size_x, window_size_y):
 
     """
     Finds the index of the corner of the window with the lowest energy resolution
     """
-
 
     shower_energy = np.zeros((LR_dim-window_size_x, LR_dim-window_size_y)) # understand indices as the upper left corner of the window_size*window_size window that will be selected from the image, value will be the sum of the window energy
 
@@ -67,10 +41,7 @@ def find_shower_numba(LR, LR_dim, window_size_x, window_size_y):
 
 def find_shower(image_LR, LR_dim = 24, window_size_x=12, window_size_y = 12):
 
-    """
-    Cuts out the window_size x window_size image with the highest energy,
-    this will be the LR photon or pion object.
-    """
+    ''' Cuts out the window_size x window_size image with the highest energy. '''
 
 
     shower_corner = find_shower_numba(image_LR, LR_dim, window_size_x, window_size_y)
@@ -88,6 +59,7 @@ def find_shower(image_LR, LR_dim = 24, window_size_x=12, window_size_y = 12):
 
     return LR_cut, error
 
+
 def cut_images(shower_images, original_size, window_size_x, window_size_y):
 
     ''' Cut out the images for the calculated windows. '''
@@ -103,7 +75,7 @@ def cut_images(shower_images, original_size, window_size_x, window_size_y):
         cut_images[idx] = cut_image
         relative_error[idx] = relative_error_value
 
-    # For an estimation how much energy we loose
+    # For an estimation how much energy we loose:
 
     sorted_relative_error = np.sort(relative_error)
 
@@ -133,7 +105,7 @@ def convert_energy_grid_numpy(dataframe, column_name):
 
 def get_labels(dataframe, column_name):
 
-    ''' Take the dataframe and return an array with labels for the particle types. '''
+    ''' Take the dataframe and return an array with labels for the particle types. (here only photon)'''
 
     particle_types = np.array(dataframe[column_name].values, dtype='<U3')
 
@@ -144,7 +116,7 @@ def get_labels(dataframe, column_name):
 
 def get_energy_conditions_as_sum(images):
 
-    ''' Get energy condition as sum of image. '''
+    ''' Get energy condition as sum of image. Currently not used. '''
 
     energy_condition = np.sum(images, axis = (1,2))
 
@@ -176,7 +148,7 @@ def expand_dataframe(dataframe, column_name):
 
 def merge_conditions(*args):
 
-    ''' Merge all different conditions (energy, noise, shielding) together. '''
+    ''' Merge all different conditions (energy, thickness, distance) together. '''
 
     # Validate input shapes
     for arr in args:
@@ -200,53 +172,10 @@ def train_test_val_split(images, labels, conditions, ratio = (0.55, 0.4, 0.05)):
     return train_data, test_data, val_data, train_labels, test_labels, val_labels, train_conditions, test_conditions, val_conditions
 
 
-def add_noise(images, labels, conditions, image_size_x, image_size_y, min_std = 10, max_std = 200, double_size = True):
-
-    ''' This function adds noise to the images. '''
-
-    mean = 0
-
-    rng = np.random.default_rng(seed = 42)
-
-    if double_size:
-        noise_range1, noise_range2 = (min_std, min_std + (max_std - min_std)/2), (min_std + (max_std - min_std)/2, max_std)
-
-        std1 = rng.uniform(*noise_range1, size = (images.shape[0],))
-        std2 = rng.uniform(*noise_range2, size = (images.shape[0],))
-
-        noise1 = rng.normal(loc = mean, scale = std1[:, None, None], size = (images.shape[0], image_size_x, image_size_y))
-        noise2 = rng.normal(loc = mean, scale = std2[:, None, None], size = (images.shape[0], image_size_x, image_size_y))
-
-        images1 = images + noise1
-        images2 = images + noise2
-
-        images = np.concatenate((images1, images2))
-        labels = np.concatenate((labels, labels))
-        conditions = np.concatenate((conditions, conditions))
-
-        noise_condition = np.concatenate((std1, std2), axis = 0).reshape(conditions.shape[0],1)
-
-        
-
-    else:
-        
-        noise_range = (min_std, max_std)
-
-        std = rng.uniform(*noise_range, size = (images.shape[0],))
-
-        noise = rng.normal(loc = mean, scale = std[:, None, None, None], size = (images.shape[0], image_size_x, image_size_y, 1))
-
-        images = images + noise
-
-        noise_condition = std.reshape(conditions.shape[0],1)
-
-    # add noise to condition
-    conditions = np.concatenate((conditions, noise_condition), axis = 1)
-
-
-    return images, labels, conditions
 
 def seperate_particles(images, labels, conditions, particle):
+    
+    ''' Sepearte particles based on particle type. Currently not used.'''
 
     if particle:
 
@@ -265,6 +194,8 @@ def seperate_particles(images, labels, conditions, particle):
         return images, labels, conditions
 
 def filter_out_energies(images, labels, conditions, min_energy):
+    
+    ''' Filter out the (very low number of) samples with low energy deposition. '''
 
     energies = conditions[:,0]
 
@@ -278,26 +209,23 @@ def filter_out_energies(images, labels, conditions, min_energy):
 
 
 
-def save_as_arrays(data_path, train_images, train_labels, train_conditions, test_images, test_labels, test_conditions, validation_images, validation_labels, validation_conditions, noise = False, particle = None):
+def save_as_arrays(data_path, train_images, train_labels, train_conditions, test_images, test_labels, test_conditions, validation_images, validation_labels, validation_conditions):
 
     ''' Function for saving the arrays in the given datapath'''
 
-    if noise: data_path = data_path + "noise/"
     os.makedirs(data_path, exist_ok=True)
 
-    if not particle: particle = ''
+    np.save(data_path + 'train_img_'  + ".npy", train_images)
+    np.save(data_path + 'train_labels_' + ".npy", train_labels)
+    np.save(data_path + 'train_conditions_' + ".npy", train_conditions)
 
-    np.save(data_path + 'train_img_' + particle + ".npy", train_images)
-    np.save(data_path + 'train_labels_' + particle + ".npy", train_labels)
-    np.save(data_path + 'train_conditions_' + particle + ".npy", train_conditions)
+    np.save(data_path + 'test_img_' + ".npy", test_images)
+    np.save(data_path + 'test_labels_' + ".npy", test_labels)
+    np.save(data_path + 'test_conditions_' + ".npy", test_conditions)
 
-    np.save(data_path + 'test_img_' + particle + ".npy", test_images)
-    np.save(data_path + 'test_labels_' + particle + ".npy", test_labels)
-    np.save(data_path + 'test_conditions_' + particle + ".npy", test_conditions)
-
-    np.save(data_path + 'validation_img_' + particle + ".npy", validation_images)
-    np.save(data_path + 'validation_labels_' + particle + ".npy", validation_labels)
-    np.save(data_path + 'validation_conditions_' + particle + ".npy", validation_conditions)
+    np.save(data_path + 'validation_img_' + ".npy", validation_images)
+    np.save(data_path + 'validation_labels_' + ".npy", validation_labels)
+    np.save(data_path + 'validation_conditions_' + ".npy", validation_conditions)
 
 
 
@@ -306,18 +234,15 @@ def save_as_arrays(data_path, train_images, train_labels, train_conditions, test
 
 ############################ Main program ###################################
 
-window_size_x = 24
-window_size_y = 24
+window_size_x = 16
+window_size_y = 8
 original_size = 24
-noise = False           # right now irrelevant
-augment_data = True     # only if noise is true
-specify_particle = 'photon'
 
 # Directory to store the .npy files
-data_path = "/net/data_cms3a-1/kann/fast_calo_flow/data/shielding_distance_24x24/"
+data_path = "/net/data_cms3a-1/kann/fast_calo_flow/data/thickness_distance_24x24/"
 
 # Directory where Parquet files are stored
-parquet_dir = "/net/data_cms3a-1/kann/fast_calo_flow/raw_files/shielding_distance/"
+parquet_dir = "/net/data_cms3a-1/kann/fast_calo_flow/raw_files/thickness_distance/"
 
 
 
@@ -340,8 +265,7 @@ def main():
     shower_images = np.stack(dataframe['energy_grid_array'].values)
 
     # cut out the relevant part of the shower
-    # images = cut_images(shower_images=shower_images, original_size=original_size, window_size_x=window_size_x, window_size_y=window_size_y)
-    images = shower_images
+    images = cut_images(shower_images=shower_images, original_size=original_size, window_size_x=window_size_x, window_size_y=window_size_y)
 
     ### get conditions
     condition_energy = get_condition_from_dataframe(dataframe=dataframe, column_name='E').reshape(-1,1)
@@ -354,18 +278,10 @@ def main():
 
     conditions = merge_conditions(condition_energy, condition_thickness, condition_distance)
 
-    # images, labels, conditions = filter_out_energies(images=images, labels=labels, conditions=conditions, min_energy=10_000)
-
-    
-    # get separate files for different particles
-    images, labels, conditions = seperate_particles(images, labels, conditions, particle=specify_particle)
-
-
-    if noise: images, labels, conditions = add_noise(images=images, labels=labels, conditions=conditions, image_size_x=window_size_x, image_size_y=window_size_y, min_std=10, max_std=200, double_size=augment_data)
 
     train_images, test_images, validation_images, train_labels, test_labels, validation_labels, train_conditions, test_conditions, validation_conditions = train_test_val_split(images = images, labels = labels, conditions = conditions, ratio = (0.60,0.30,0.1))
 
-    save_as_arrays(data_path=data_path, train_images=train_images, train_labels= train_labels, train_conditions=train_conditions, test_images=test_images, test_labels=test_labels, test_conditions=test_conditions, validation_images=validation_images, validation_labels=validation_labels, validation_conditions=validation_conditions, noise=noise, particle=specify_particle)
+    save_as_arrays(data_path=data_path, train_images=train_images, train_labels= train_labels, train_conditions=train_conditions, test_images=test_images, test_labels=test_labels, test_conditions=test_conditions, validation_images=validation_images, validation_labels=validation_labels, validation_conditions=validation_conditions)
 
 
 
