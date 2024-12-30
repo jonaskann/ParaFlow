@@ -24,11 +24,11 @@ import torchvision
 
 
 # Load the custom model
-from .custom_model.model import NSF
+from custom_model.model import NSF
 
 # Load data classes
-from .data import SimData, FlattenImage, DownSample, NormalizeImage, AddNoise, BinaryLabels, ToTensor, LogitTransformation, postprocessing, condition_scaling, AddWeights
-from .utils import EarlyStopper
+from data import SimData, FlattenImage, NormalizeImage, AddNoise, ToTensor, LogitTransformation, postprocessing, condition_scaling, AddWeights
+from utils import EarlyStopper
 
 
 # Plotting libraries
@@ -109,7 +109,7 @@ class CaloFastSim:
 
         # path to data & results
         self.data_path = data_path
-        self.results_path = f"/net/data_cms3a-1/kann/fast_calo_flow/results_data_florian/{run_id}/"
+        self.results_path = f"/net/data_cms3a-1/kann/fast_calo_flow/results/{run_id}/"
 
         # set up dump directories for results
         os.makedirs(self.results_path, exist_ok=reload_model) # abort when trying to override run that exists / if we reload the model its okay that the directory already exists
@@ -157,16 +157,16 @@ class CaloFastSim:
         self.transforms = torchvision.transforms.Compose([
                                         AddNoise(active=self.noise, noise_level = self.noise_level, generator = generator), 
                                         FlattenImage(self.n_features), 
-                                        NormalizeImage(noise=self.detector_noise), 
-                                        LogitTransformation(alpha=self.alpha, noise=self.detector_noise),
+                                        NormalizeImage(), 
+                                        LogitTransformation(alpha=self.alpha),
                                         AddWeights(active=self.weights), 
                                         ToTensor()])
 
         
         # Get datasets for training, validation and testing (and depending on particle type)
-        self.dataset_train          = SimData(root_dir = self.data_path, particle = self.particle, mode = "train", transforms = self.transforms)
-        self.dataset_validation     = SimData(root_dir = self.data_path, particle = self.particle, mode = "validation", transforms = self.transforms)
-        self.dataset_test           = SimData(root_dir = self.data_path, particle = self.particle, mode = "test", transforms = self.transforms)
+        self.dataset_train          = SimData(data_dir = self.data_path, mode = "train", transforms = self.transforms)
+        self.dataset_validation     = SimData(data_dir = self.data_path, mode = "validation", transforms = self.transforms)
+        self.dataset_test           = SimData(data_dir = self.data_path, mode = "test", transforms = self.transforms)
 
 
     def training(self):

@@ -21,161 +21,8 @@ from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 
 # Imports from other files
-from ..utils import EarlyStopper
-from .data import condition_scaling
-
-############################# Architecture of the Classifier #############################
-
-class BinaryClassifier(nn.Module):
-    ''' 
-    Class for the architecture of the binary classfier used as metric for generator.
-    Args:       classifier_type : Can be CNN or DNN depending on what model we want to use for the classifier
-                num_conditions : Number of conditions that need to be integrated in the classifier.
-    '''
-
-    def __init__(self, classifier_type : str, num_conditions : int, detector_noise :  bool):
-
-        super().__init__()
-
-        assert classifier_type in ('CNN', 'DNN'), "Type of classifier can be either 'CNN' or 'DNN'." 
-
-
-        self.classifier_type = classifier_type
-        self.num_conditions = num_conditions
-
-
-        # Choice of different dropout values for different scenarios and particles
-        p_dropout = 0.30
-        if detector_noise: p_dropout -= 0.10    # reduce dropout if we want to look at a specific noise level
-
-            
-
-
-        # Different Convolutional Layer
-        self.convolutional_layer1 = nn.Conv2d(in_channels = 1, out_channels = 16, kernel_size = 3, padding = 'same')
-        self.convolutional_layer2 = nn.Conv2d(in_channels = 16, out_channels = 32, kernel_size = 3, padding = 'same')
-        self.convolutional_layer3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, padding = 'valid')
-        self.convolutional_layer4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, padding = 'same')
-        self.convolutional_layer5 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = 3, padding = 'valid')
-        self.convolutional_layer6 = nn.Conv2d(in_channels = 128, out_channels = 128, kernel_size = 3, padding = 'valid')
-
-
-        self.maxpooling1          = nn.MaxPool2d(kernel_size = (2,1))
-        self.maxpooling2          = nn.MaxPool2d(kernel_size = (2,2))
-
-        # Shortcut for the residual part of the network
-        self.shortcut1             = nn.Conv2d(in_channels = 16, out_channels = 32, kernel_size=1, stride=1, padding=0)
-        self.shortcut2             = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=1, stride=1, padding=0)
-        self.shortcut3             = nn.Conv2d(in_channels = 128, out_channels = 128, kernel_size=1, stride=1, padding=0)
-
-
-        # BatchNorm
-
-        self.batch_norm1 = nn.BatchNorm2d(16)
-        self.batch_norm2 = nn.BatchNorm2d(32)
-        self.batch_norm3 = nn.BatchNorm2d(64)
-        self.batch_norm4 = nn.BatchNorm2d(64)
-        self.batch_norm5 = nn.BatchNorm2d(128)
-        self.batch_norm6 = nn.BatchNorm2d(128)
-
-        # Activation, Dropout & Flatten Layer
-        self.activation = nn.LeakyReLU(negative_slope = 0.01, inplace = True)
-        self.dropout = nn.Dropout(p_dropout, inplace = False)
-        self.flatten = nn.Flatten()
-
-        ### Stacks of Linear layers for the different architectures
-        
-        # Linear layers for CNN
-        self.cnn_linear_stack = nn.Sequential(
-            nn.Linear(in_features = 512 + self.num_conditions, out_features = 256),
-            nn.LeakyReLU(negative_slope = 0.01, inplace = True),
-            nn.Dropout(p_dropout),
-            nn.Linear(in_features = 256, out_features = 128),
-            nn.LeakyReLU(negative_slope = 0.01, inplace = True),
-            nn.Linear(in_features = 128, out_features = 1),
-        )
-
-        # Linear layers for DNN
-        self.dnn_linear_stack = nn.Sequential(
-            nn.Linear(in_features = 144 + self.num_conditions, out_features = 512),
-            nn.LeakyReLU(negative_slope = 0.05, inplace = True),
-            nn.Dropout(0.25),
-            nn.Linear(in_features = 512, out_features = 512),
-            nn.LeakyReLU(negative_slope = 0.05, inplace = True),
-            nn.Dropout(0.25),
-            nn.Linear(in_features = 512, out_features = 512),
-            nn.LeakyReLU(negative_slope = 0.05, inplace = True),
-            nn.Dropout(0.25),
-            nn.Linear(in_features = 512, out_features = 1),
-        )
-
-
-    def forward(self, x, conditions):
-
-        ''' forward passes for the different classifier types... '''
-
-        if (self.classifier_type == 'CNN'):
-            
-
-            # with residual connections
-
-            residual = x
-
-            output = self.convolutional_layer1(x)
-            output += residual
-            output =  self.activation(output)
-            output = self.batch_norm1(output)
-
-
-            residual = output
-            residual = self.shortcut1(residual)
-            output = self.convolutional_layer2(output)
-            output += residual
-            output = self.activation(output)
-            output = self.batch_norm2(output)
-            output = self.dropout(output)
-
-
-            output = self.maxpooling1(output)
-
-
-            output = self.convolutional_layer3(output)
-            output = self.activation(output)
-            output = self.batch_norm3(output)
-
-
-            residual = output
-            residual = self.shortcut2(residual)
-            output = self.convolutional_layer4(output)
-            output += residual
-            output = self.activation(output)
-            output = self.batch_norm4(output)
-            output = self.dropout(output)
-
-
-
-            output = self.convolutional_layer5(output)
-            output = self.activation(output)
-            output = self.batch_norm5(output)
-
-
-
-            output = self.convolutional_layer6(output)
-            output = self.activation(output)
-
-
-
-            x_flat = self.flatten(output)
-            x_flat_conditions = torch.cat((x_flat, conditions), dim = 1)
-            logits = self.cnn_linear_stack(x_flat_conditions)
-            return logits
-        else:
-
-            x_flat = self.flatten(x)
-            x_flat_conditions = torch.cat((x_flat, conditions), dim = 1)
-            logits = self.dnn_linear_stack(x_flat_conditions)
-            return logits
-        
+from utils import EarlyStopper
+from data import condition_scaling
 
 
 class ResidualBlock(nn.Module):
@@ -368,24 +215,16 @@ class ToTensor(object):
     
 class ProcessConditions(object):
     """ Transfrom the conditions appropriatly... """
-
-    def __init__(self, noise = False):
-
-        self.noise = noise
     
     def __call__(self, sample):
 
         conditions = sample['conditions'].copy()
 
         processed_condition_energy = np.array([condition_scaling(conditions[0], lower_bound=20, higher_bound=100, use_torch=False)])
-        processed_condition_shielding = np.array([condition_scaling(conditions[1], lower_bound=0.5, higher_bound=1.5, use_torch=False)])
+        processed_condition_thickness = np.array([condition_scaling(conditions[1], lower_bound=0.5, higher_bound=1.5, use_torch=False)])
         processed_condition_distance = np.array([condition_scaling(conditions[2], lower_bound = 50, higher_bound=90, use_torch=False)])
 
-        processed_condition = np.concatenate((processed_condition_energy, processed_condition_shielding, processed_condition_distance), axis = 0)
-
-        if self.noise:
-            processed_condition_noise = np.array([np.log10(conditions[1] / 10)])
-            processed_condition = np.concatenate((processed_condition, processed_condition_shielding, processed_condition_distance, processed_condition_noise), axis = 0)
+        processed_condition = np.concatenate((processed_condition_energy, processed_condition_thickness, processed_condition_distance), axis = 0)
 
         sample['conditions'] = processed_condition
 
@@ -436,20 +275,17 @@ class LogitTransformation(object):
         return sample
     
 
-def get_data(samples, geant4, sample_conditions, geant4_conditions, num_conditions, image_size_x, image_size_y, noise, batch_size, normalize, logit = False):
+def get_data(samples, geant4, sample_conditions, geant4_conditions, num_conditions, image_size_x, image_size_y, batch_size, normalize, logit = False):
 
     ''' Function for loading the datasets, performing the preprocessing and loading the data into the dataloaders. '''
 
-    # set flag for wether we look at data with noise
-    if noise: num_conditions = num_conditions + 1
-
     # different preprocessing steps for different settings
     if (normalize and logit):
-        transformations = torchvision.transforms.Compose([ProcessConditions(noise = noise), NormalizeImage(), LogitTransformation(alpha = 1e-4), ToTensor()])
+        transformations = torchvision.transforms.Compose([ProcessConditions(), NormalizeImage(), LogitTransformation(alpha = 1e-4), ToTensor()])
     elif (normalize and not logit):
-        transformations = torchvision.transforms.Compose([ProcessConditions(noise = noise), NormalizeImage(), ToTensor()])
+        transformations = torchvision.transforms.Compose([ProcessConditions(), NormalizeImage(), ToTensor()])
     else:
-        transformations = torchvision.transforms.Compose([ProcessConditions(noise = noise), ToTensor()])
+        transformations = torchvision.transforms.Compose([ProcessConditions(), ToTensor()])
 
 
 

@@ -239,10 +239,10 @@ window_size_y = 8
 original_size = 24
 
 # Directory to store the .npy files
-data_path = "/net/data_cms3a-1/kann/fast_calo_flow/data/thickness_distance_24x24/"
+data_path = "/net/data_cms3a-1/kann/public/ParaFlow/data/"
 
 # Directory where Parquet files are stored
-parquet_dir = "/net/data_cms3a-1/kann/fast_calo_flow/raw_files/thickness_distance/"
+parquet_dir = "/net/data_cms3a-1/kann/fast_calo_flow/raw_files/shielding_distance/"
 
 
 

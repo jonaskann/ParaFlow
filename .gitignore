@@ -1,14 +1,17 @@
 # ignore MAC OS files
-.DS_Store
+*.DS_Store
 
 
 # pycache directories
 __pycache__/
-*/__pycache__
 
 # bash scripts
-# *.sh
+*.sh
 
 # Images
 Images/
 *.pdf
+
+
+# specific helper scripts
+hyperparameter_optimization.py

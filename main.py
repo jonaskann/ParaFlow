@@ -5,10 +5,8 @@ warnings.filterwarnings('ignore', category=UserWarning, message='TypedStorage is
 import torch
 import yaml
 import numpy as np
-from .train import CaloFastSim
-from .evaluation import Judge
-
-# torch.cuda.empty_cache()
+from train import CaloFastSim
+from evaluation import Judge
  
 
 
@@ -25,7 +23,7 @@ if __name__ == "__main__":
     parser.add_argument('-g', '--generate_samples', type = bool, help = 'Flag if new samples shall be generated or existing ones loaded.')
     parser.add_argument('-tb', '--thickness_bin', type = int, help = 'Specify the range of thickness of the absorber material for which to evaluate.')
     parser.add_argument('-db', '--distance_bin', type = int, help = 'Specify the range of distance of the absorber material for which to evaluate.')
-    parser.add_argument('-cbs', '--compare_bins_thickness', type = bool, help = 'Flag for comparison plots between different thickness ranges.')
+    parser.add_argument('-cbt', '--compare_bins_thickness', type = bool, help = 'Flag for comparison plots between different thickness ranges.')
     parser.add_argument('-cbd', '--compare_bins_distance', type = bool, help = 'Flag for comparison plots between different distance ranges.')
     parser.add_argument('-cc', '--count_clusters', type = bool, help = "Flag if clustering should be performed.")
 
@@ -42,9 +40,9 @@ if __name__ == "__main__":
         "cosine_annealing" : True,
 
         # model hyperparameters
-        "n_features" : 24*24,
-        "image_size_x" : 24,
-        "image_size_y" : 24,
+        "n_features" : 16*8,
+        "image_size_x" : 16,
+        "image_size_y" : 8,
         "n_conditions" : 3,
         "n_bins" : 10,
         "n_transforms" : 10,
@@ -67,7 +65,7 @@ if __name__ == "__main__":
 
     # If we reload our model, reload our parameters from the corresponding config yaml (overwrite the ones specified above)
     if reload_model:
-        with open('/net/data_cms3a-1/kann/fast_calo_flow/results_data_florian/' + args.run_id + '/config.yml', 'r') as file:
+        with open('/net/data_cms3a-1/kann/fast_calo_flow/results/' + args.run_id + '/config.yml', 'r') as file:
             parameters = yaml.safe_load(file)
 
 
@@ -79,7 +77,7 @@ if __name__ == "__main__":
     print(f"Working on device: {device:>6}")
 
     # Path of dataset
-    data_path = "/net/data_cms3a-1/kann/fast_calo_flow/data/shielding_distance/"
+    data_path = "/net/data_cms3a-1/kann/public/ParaFlow/data/"
     
     if ( mode == "train" ):
 
@@ -95,7 +93,7 @@ if __name__ == "__main__":
     elif ( mode == 'evaluate'):
 
         # Instantiate evaluation class and run its methods (see evaluation.py)
-        framework_evaluation = Judge(run_id = parameters["run_id"], sample_size = args.samplesize, data_path = data_path, device = device, parameters=parameters, shielding_bin = args.shielding_bin, distance_bin=args.distance_bin, bin_comparison_shielding = args.compare_bins_shielding, bin_comparison_distance=args.compare_bins_distance, generate=args.generate_samples)
+        framework_evaluation = Judge(run_id = parameters["run_id"], sample_size = args.samplesize, data_path = data_path, device = device, parameters=parameters, thickness_bin = args.thickness_bin, distance_bin=args.distance_bin, bin_comparison_thickness = args.compare_bins_thickness, bin_comparison_distance=args.compare_bins_distance, generate=args.generate_samples)
         framework_evaluation.plot_averages()
         framework_evaluation.plot_histograms()
         if args.count_clusters: framework_evaluation.cluster_shower_images()
@@ -104,5 +102,5 @@ if __name__ == "__main__":
     elif ( mode == 'classifier'):
 
         # Instantiate evaluation class and run the classifier (see evaluation.py & classifier.py)
-        framework_evaluation = Judge(run_id = parameters["run_id"], sample_size = args.samplesize, data_path = data_path, device = device, parameters=parameters, shielding_bin = args.shielding_bin, distance_bin=args.distance_bin, bin_comparison_shielding = args.compare_bins_shielding, bin_comparison_distance=args.compare_bins_distance, generate=args.generate_samples)
+        framework_evaluation = Judge(run_id = parameters["run_id"], sample_size = args.samplesize, data_path = data_path, device = device, parameters=parameters, thickness_bin = args.thickness_bin, distance_bin=args.distance_bin, bin_comparison_thickness = args.compare_bins_thickness, bin_comparison_distance=args.compare_bins_distance, generate=args.generate_samples)
         framework_evaluation.train_binary_classifier(classifier_type=args.type_classifier)

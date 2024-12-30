@@ -119,7 +119,7 @@ class LogitTransformation(object):
 
     ''' Class for performing Logit transformation as in CaloFlow [https://arxiv.org/abs/2106.05285]'''
 
-    def __init__(self, noise : bool, alpha = 1e-6):
+    def __init__(self, alpha = 1e-6):
 
         self.alpha = alpha
 
@@ -250,7 +250,6 @@ def load_test_data(data_path, sample_size, thickness_range, distance_range, thre
     ## set threshold for sparsity plots
     data_img[data_img < threshold] = 0
 
-
     # subselect specified thickness range
     lower_bound, higher_bound = thickness_range[0], thickness_range[1]
 
@@ -262,16 +261,16 @@ def load_test_data(data_path, sample_size, thickness_range, distance_range, thre
     # subselect specified thickness range
     lower_bound, higher_bound = distance_range[0], distance_range[1]
 
-    mask_distance = (data_conditions[:,2] > lower_bound) & (data_conditions[:,2] < higher_bound)
+    mask_distance = (data_conditions[:,2] >= lower_bound) & (data_conditions[:,2] <= higher_bound)
 
     data_img = data_img[mask_distance]
     data_conditions  = data_conditions[mask_distance]
 
-    assert sample_size >= len(data_img), "Specified sample size is bigger than GEANT4 testset."
+    assert sample_size <= len(data_img), "Specified sample size is bigger than GEANT4 testset."
 
     # select subset (according to sample size) of data
     data = data_img[:sample_size]
-    conditions = conditions[:sample_size]
+    conditions = data_conditions[:sample_size]
 
 
     return data, conditions

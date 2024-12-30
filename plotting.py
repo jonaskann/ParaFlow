@@ -8,7 +8,7 @@ import mplhep as hep
 plt.rcdefaults()
 plt.style.use([hep.style.ROOT])
 
-from .utils import get_binedges
+from utils import get_binedges
 
 from scipy.stats import ks_2samp, binned_statistic_2d
 
@@ -25,7 +25,7 @@ def chi2(hist1, hist2):
         return np.sum((((hist1 - hist2) ** 2) / (error + epsilon)**2)) / n_bins
 
 
-def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_color, title, x_label, y_label, filename, result_path, data_conditions, sample_conditions, xlim = None, ylim = None, calc_std = False, detector_noise_level = None, thickness_range = None, distance_range = None, bin_comparison_thickness = False, bin_comparison_distance = False, log_yscale = False):
+def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_color, title, x_label, y_label, filename, result_path, data_conditions, sample_conditions, xlim = None, ylim = None, calc_std = False, thickness_range = None, distance_range = None, bin_comparison_thickness = False, bin_comparison_distance = False, log_yscale = False):
 
     ''' Function for plotting the histogram of various quantities including the comparison histograms.'''
 
@@ -38,7 +38,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
     ### Statistical scores ###
 
-    chi2_value = chi2(hist1=hist_data, hist2=hist_samples, n_bins=len(bin_centers))
+    chi2_value = chi2(hist1=hist_data, hist2=hist_samples)
 
     # Kolmogorov-Smirnov test
     ks_stat, ks_p_value = ks_2samp(data_samples, data_geant4, alternative = 'two-sided')
@@ -152,7 +152,8 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
     
 
     ax2.set_ylabel('')
-    ax2.set_ylim(0, 2)  # Adjust y-limits for better view
+    ymin, ymax = 0, 2
+    ax2.set_ylim(ymin, ymax)  # Adjust y-limits for better view
 
     # Add arrows for values outside y-axis range
     for i, (xi, yi) in enumerate(zip(bin_centers, ratio)):
@@ -284,7 +285,8 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
             ax2.axhline(1, color='black', linestyle='--')  # Reference line at y=1
 
             ax2.set_ylabel('')
-            ax2.set_ylim(0, 2) 
+            ymin, ymax = 0, 2
+            ax2.set_ylim(ymin, ymax) 
 
             # Add arrows for values outside y-axis range
             for _, (xi, yi) in enumerate(zip(bin_centers, ratio)):

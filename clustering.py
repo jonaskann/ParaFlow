@@ -219,7 +219,7 @@ def main():
 
     num_samples = 10   # number of samples to perform clustering
     num_images = 5     # number of samples to plot 
-    data_path = "/net/data_cms3a-1/kann/fast_calo_flow/data/shielding/"
+    data_path = "/net/data_cms3a-1/kann/public/ParaFlow/data"
     data = np.load(data_path + "test_img_photon.npy")[:num_samples]
 
     n_images, height, width = data.shape
