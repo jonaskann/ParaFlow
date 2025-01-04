@@ -77,9 +77,12 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
     ax1.set_title(condition_title, c = "dimgrey", fontsize =25, loc = 'right')
 
+    epsilon = 1e-4
 
     # Histogram bars of Geant4 data
-    ax1.fill_between(np.append(bin_centers, (bin_centers[-1] + (bin_centers[-1] - bin_centers[-2]))), np.append(hist_data, 0), step='mid', color=plot_color, alpha = 0.7, label = r"MC", edgecolor = 'black')
+    ax1.fill_between(bin_edges, np.append(hist_data, 0), step='post', color=plot_color, alpha = 0.7, label = r"MC", edgecolor = 'black')
+    #ax1.bar(bin_centers, hist_data, align = 'center', width =np.diff(bin_edges)+epsilon, color = plot_color, alpha = 0.7, label = r"MC", edgecolor = None)
+
 
     # Uncertainties as grid patches
     uncertainties_data = np.sqrt(hist_data)
@@ -98,12 +101,12 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
     )
 
     # Samples as data points with error bars
-    ax1.errorbar(bin_centers, hist_samples, yerr = np.sqrt(hist_samples), fmt='.', markersize = 12, markeredgecolor ='black', markerfacecolor = 'black', ecolor='black', elinewidth = 2, label = "Fast Simulation")
+    ax1.errorbar(bin_centers, hist_samples, yerr = np.sqrt(hist_samples), fmt='.', markersize = 12, markeredgecolor ='black', markerfacecolor = 'black', ecolor='black', elinewidth = 2, label = "ParaFlow")
 
 
     # Set axis limits as specified or based on data
     if xlim: ax1.set_xlim(*xlim)
-    ax1.set_ylim(0, max(max(hist_samples), max(hist_data))*1.4)
+    ax1.set_ylim(0, max(max(hist_samples), max(hist_data))*1.5)
 
     # if log_yscale is active 
     if log_yscale: 
@@ -134,14 +137,14 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
     ####### RATIO PLOTS #######
 
     # Calculate the ratio, avoiding division by zero
-    ratio = np.divide(hist_data, hist_samples, out=np.full_like(hist_data, fill_value= 0, dtype=float), where=hist_samples != 0)
+    ratio = np.divide(hist_samples, hist_data, out=np.full_like(hist_data, fill_value= 0, dtype=float), where=hist_data != 0)
 
     inv_hist_data = np.divide(np.ones_like(hist_data, dtype=float), hist_data, out=np.zeros_like(hist_data, dtype=float), where=hist_data != 0)
     inv_hist_samples = np.divide(np.ones_like(hist_samples, dtype=float), hist_samples, out=np.zeros_like(hist_samples, dtype=float), where=hist_samples != 0)
 
-    err_data = uncertainties_data * inv_hist_samples
+    err_data = hist_samples * (inv_hist_data)**2 * uncertainties_data
 
-    err_samples = hist_data * (inv_hist_samples)**2
+    err_samples = np.sqrt(hist_samples) * inv_hist_data
 
     # set values with ratio 0 (which means hist_samples = 0) to -1 out of sight
     ratio[ratio == 0] = -1
@@ -176,7 +179,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
                         arrowprops=dict(arrowstyle='->', color='black', lw=2.5))
 
     # ylabel
-    fig.text(0.02, 0.23, r'MC / FastSim', va='center', rotation='vertical', fontsize = 35)
+    fig.text(0.02, 0.23, r'ParaFlow / MC', va='center', rotation='vertical', fontsize = 35)
 
 
     # Plot the finer ratio on the lowest subplot
@@ -253,11 +256,11 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
 
             ax1.set_title("$\\bf{{ParaFlow}}$  "  + f"$\\it{{{title}}}$", c="black", fontsize = 35, loc = 'left', pad = 15)
-
+            ax1.step(np.insert(bin_edges, 0, bin_edges[0] - (bin_edges[1] - bin_edges[0])), np.insert(np.append(hist_data, 0),0,0), where='post', color=plot_color[i], lw = 3.5, alpha = 0.6)
+            ax1.fill_between(bin_edges, np.append(hist_data, 0), step='post', color=plot_color[i], edgecolor = plot_color[i], lw = 0, alpha = 0.025)
             ax1.errorbar(bin_centers, hist_data, yerr = np.sqrt(hist_data), fmt='none', ecolor=plot_color[i], alpha = 0.4, elinewidth = 2)
             ax1.errorbar(bin_centers, hist_samples, yerr = np.sqrt(hist_samples), fmt = ".", color = plot_color[i], ecolor = plot_color[i], markersize = 16, elinewidth=2.5, markeredgecolor = 'black', markeredgewidth = 0.25)
-            ax1.fill_between(bin_centers, hist_data, step='mid', color=plot_color[i], edgecolor = plot_color[i], lw = 0, alpha = 0.025)
-            ax1.step(bin_centers, hist_data, where='mid', color=plot_color[i], lw = 3.5, alpha = 0.6)
+            
 
             # Add thickness info to custom legend
             custom_handles_legend1.append(matplotlib.patches.Patch(facecolor = plot_color[i], label = shield_label))
@@ -270,7 +273,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
 
             # Calculate the ratio, avoiding division by zero
-            ratio = np.divide(hist_data, hist_samples, out=np.full_like(hist_data, fill_value= 0, dtype=float), where=hist_samples != 0)
+            ratio = np.divide(hist_samples, hist_data, out=np.full_like(hist_data, fill_value= 0, dtype=float), where=hist_data != 0)
 
             inv_hist_data = np.divide(np.ones_like(hist_data, dtype=float), hist_data, out=np.zeros_like(hist_data, dtype=float), where=hist_data != 0)
             inv_hist_samples = np.divide(np.ones_like(hist_samples, dtype=float), hist_samples, out=np.zeros_like(hist_samples, dtype=float), where=hist_samples != 0)
@@ -309,7 +312,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
                                 arrowprops=dict(arrowstyle='->', color=plot_color[i], lw=2.5))
 
             # ylabel
-            fig.text(0.02, 0.23, r'MC / FastSim', va='center', rotation='vertical', fontsize = 35)
+            fig.text(0.02, 0.23, r'ParaFlow / MC', va='center', rotation='vertical', fontsize = 35)
                     
             # Plot the finer ratio on the lowest subplot
             ax3.errorbar(bin_centers + offsets[i], ratio, yerr = err, fmt = '.', color=plot_color[i], elinewidth= 2.5, markersize = 12, ecolor = plot_color[i], markeredgecolor = 'black', markeredgewidth = 0.25)
@@ -331,7 +334,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
         # legend with statistical scores
         legend_properties = {'weight':'bold', 'size':27}
-        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, handletextpad=0, loc = 'best', labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0, 0.35, 1, 0.28), frameon = True, fancybox = False)
+        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, handletextpad=0, loc = 'lower left', labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0.18, 0.0075), frameon = True, fancybox = False)
         
         # Customize the frame around the legend
         frame = second_legend.get_frame()
@@ -345,7 +348,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
 
         # second legend to distinguish MC from FastSim
-        ax1.errorbar(np.inf, np.inf, yerr = [1], color = "dimgrey", label = "Fast Simulation", fmt=".", markersize = 15) # dump plot for legend
+        ax1.errorbar(np.inf, np.inf, yerr = [1], color = "dimgrey", label = "ParaFlow", fmt=".", markersize = 15) # dump plot for legend
         ax1.errorbar(np.inf, np.inf, yerr = [1], color ="dimgrey", markersize = 0, elinewidth = 1, label = "MC", lw = 3.5) # dump plot for legend
         ax1.legend(loc = "upper left", fontsize = 30)
         
@@ -414,10 +417,11 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
             ax1.set_title("$\\bf{{ParaFlow}}$  "  + f"$\\it{{{title}}}$", c="black", fontsize = 35, loc = 'left', pad = 15)
 
+            
+            ax1.fill_between(bin_edges, np.append(hist_data, 0), step='post', color=plot_color[i], edgecolor = plot_color[i], lw = 0, alpha = 0.025)
+            ax1.step(np.insert(bin_edges, 0, bin_edges[0] - (bin_edges[1] - bin_edges[0])), np.insert(np.append(hist_data, 0),0,0), where='post', color=plot_color[i], lw = 3.5, alpha = 0.6)
             ax1.errorbar(bin_centers, hist_data, yerr = np.sqrt(hist_data), fmt='none', ecolor=plot_color[i], alpha = 0.4, elinewidth = 2)
             ax1.errorbar(bin_centers, hist_samples, yerr = np.sqrt(hist_samples), fmt = ".", color = plot_color[i], ecolor = plot_color[i], markersize = 16, elinewidth=2.5, markeredgecolor = 'black', markeredgewidth = 0.25)
-            ax1.fill_between(bin_centers, hist_data, step='mid', color=plot_color[i], edgecolor = plot_color[i], lw = 0, alpha = 0.025)
-            ax1.step(bin_centers, hist_data, where='mid', color=plot_color[i], lw = 3.5, alpha = 0.6)
 
             ax1.set_ylabel("Events", fontsize = 35)
 
@@ -430,7 +434,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
             ### Ratio Plots ....
 
             # Calculate the ratio, avoiding division by zero
-            ratio = np.divide(hist_data, hist_samples, out=np.full_like(hist_data, fill_value= 0, dtype=float), where=hist_samples != 0)
+            ratio = np.divide(hist_samples, hist_data, out=np.full_like(hist_data, fill_value= 0, dtype=float), where=hist_data != 0)
 
             inv_hist_data = np.divide(np.ones_like(hist_data, dtype=float), hist_data, out=np.zeros_like(hist_data, dtype=float), where=hist_data != 0)
             inv_hist_samples = np.divide(np.ones_like(hist_samples, dtype=float), hist_samples, out=np.zeros_like(hist_samples, dtype=float), where=hist_samples != 0)
@@ -470,7 +474,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
                                 arrowprops=dict(arrowstyle='->', color=plot_color[i], lw=2.5))
 
             # ylabel
-            fig.text(0.02, 0.23, r'MC / FastSim', va='center', rotation='vertical', fontsize = 35)
+            fig.text(0.02, 0.23, r'ParaFlow / MC', va='center', rotation='vertical', fontsize = 35)
                     
             # Plot the finer ratio on the lowest subplot
             ax3.errorbar(bin_centers + offsets[i], ratio, yerr = err, fmt = '.', color=plot_color[i], elinewidth= 2.5, markersize = 12, ecolor = plot_color[i], markeredgecolor = 'black', markeredgewidth = 0.25)
@@ -494,7 +498,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
         # legend with statistical scores
         legend_properties = {'weight':'bold', 'size':27}
-        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, handletextpad=0, loc = 'best', labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0, 0.35, 1, 0.28), frameon = True, fancybox = False)
+        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, loc = 'lower left', handletextpad=0, labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0.18, 0.0075), frameon = True, fancybox = False)
         for item in second_legend.legend_handles:
             item.set_visible(False)
         frame = second_legend.get_frame()
@@ -504,7 +508,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
         ax1.add_artist(second_legend)
 
         # second legend to distinguish MC from FastSim
-        ax1.errorbar(np.inf, np.inf, yerr = [1], color = "dimgrey", label = "Fast Simulation", fmt=".", markersize = 15) # dump plot for legend
+        ax1.errorbar(np.inf, np.inf, yerr = [1], color = "dimgrey", label = "ParaFlow", fmt=".", markersize = 15) # dump plot for legend
         ax1.errorbar(np.inf, np.inf, yerr = [1], color ="dimgrey", markersize = 0, elinewidth = 1, label = "MC", lw = 3.5) # dump plot for legend
         ax1.legend(loc = "upper left", fontsize = 30)
             
@@ -570,7 +574,7 @@ def plot_2d_parameterspace(data_array, samples_array, data_params, samples_param
     im = ax1.imshow(bin_means_samples.T, origin='lower', aspect='auto',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
                cmap='viridis', vmin = vmin , vmax = vmax)
-    ax1.set_title("FastSim", c="navy", fontweight = 'bold', fontsize = 40)
+    ax1.set_title("ParaFlow", c="navy", fontweight = 'bold', fontsize = 40)
     ax1.set_ylabel(r"Distance Iron-Detector [cm]", fontsize = 40)
 
     ## Plotting for MC
@@ -591,10 +595,10 @@ def plot_2d_parameterspace(data_array, samples_array, data_params, samples_param
 
     # Samples
     im = ax3.imshow(difference, origin='lower', aspect='auto',
-               extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], vmin=-7.5, vmax=7.5, cmap='bwr')
+               extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], vmin=-5, vmax=5, cmap='bwr')
     ax3.set_xlabel(r"Thickness Iron [$X_0$]", fontsize = 40)
     cbar = fig.colorbar(im, ax=ax3)
-    cbar.set_label('(MC - FastSim)/MC [%]', fontsize = 35)
+    cbar.set_label('(MC - ParaFlow)/MC [%]', fontsize = 35)
     cbar.ax.tick_params(labelsize=30)
 
     ax1.tick_params(axis='both', which='major', labelsize=40)

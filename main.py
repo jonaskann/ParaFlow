@@ -98,6 +98,7 @@ if __name__ == "__main__":
         framework_evaluation.plot_histograms()
         if args.count_clusters: framework_evaluation.cluster_shower_images()
         framework_evaluation.show_correlation_matrix()
+        framework_evaluation.comparison_images()
 
     elif ( mode == 'classifier'):
 

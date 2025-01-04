@@ -139,8 +139,8 @@ class Judge:
         # Setup plotting colors
 
         if (not thickness_bin and not distance_bin):
-            self.plot_color = 'orange'
-            self.error_color = 'orangered'
+            self.plot_color = 'cornflowerblue'
+            self.error_color = 'blueviolet'
         elif (thickness_bin):
             self.plot_color = ['orange', 'red', 'royalblue', 'darkmagenta'][self.thickness_bin - 1]
             self.error_color = ['orangered', 'darkred', 'navy', 'indigo'][self.thickness_bin - 1]
@@ -310,9 +310,13 @@ class Judge:
         # Use LogNorm to apply logarithmic scaling to color mapping
         norm = mcolors.LogNorm(vmin=1, vmax=100e3)
 
+
         # Samples
         im = ax1.imshow(average_samples, norm=norm, cmap=cmap)
-        ax1.set_title("FastSim", c="navy", fontweight = 'bold')
+        ax1.set_title("ParaFlow", c="navy", fontweight = 'bold')
+
+        ax1.set_xticks([])
+        ax1.set_yticks([])
 
         # GEANT4
         im = ax2.imshow(average_data, norm=norm, cmap=cmap)
@@ -321,16 +325,21 @@ class Judge:
         cbar = fig.colorbar(im, ax=ax2, extend = 'min')
         cbar.set_label('Energy [MeV]')
 
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+
 
         # Difference in %
         relative_difference = (average_data - average_samples)/average_data * 100
 
-        im = ax3.imshow(relative_difference, vmin=-20, vmax=20, cmap='bwr')
+        im = ax3.imshow(relative_difference, vmin=-15, vmax=15, cmap='bwr')
         ax3.set_title("Difference", c="navy", fontweight = 'bold')
 
         cbar = fig.colorbar(im, ax=ax3)
-        cbar.set_label(r'$\frac{\mathrm{MC} - \mathrm{FastSim}}{\mathrm{MC}}$ [%]')
+        cbar.set_label(r'$(\mathrm{MC} - \mathrm{ParaFlow})/\mathrm{MC}$ [%]')
 
+        ax3.set_xticks([])
+        ax3.set_yticks([])
 
         
         fig.savefig(self.result_path + "Average_Images.pdf", bbox_inches='tight')
@@ -349,7 +358,7 @@ class Judge:
         brightest_voxel_data    = np.max(self.data, axis=(1,2)).squeeze()
 
         # plot using the functions in plotting.py
-        plot_histogram(brightest_voxel_samples/1000, brightest_voxel_data/1000, bin_centers = np.arange(0,100,1), plot_color = self.plot_color, error_color = self.error_color, title = 'Brightest~Voxel', x_label = 'Energy [GeV]', y_label = 'Events', filename = 'histogram_brightest_voxel_norm', result_path = self.result_path, data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
+        plot_histogram(brightest_voxel_samples/1000, brightest_voxel_data/1000, bin_centers = np.arange(0,80,1), plot_color = self.plot_color, error_color = self.error_color, title = 'Brightest~Voxel', x_label = 'Energy [GeV]', y_label = 'Events', filename = 'histogram_brightest_voxel', result_path = self.result_path, data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
         if (self.thickness_bin is None and self.distance_bin is None): plot_2d_parameterspace(brightest_voxel_data/1000, brightest_voxel_samples/1000, self.conditions, self.sample_conditions, title='Brightest~Voxel', colorbar_label='Energy [GeV]', result_path=self.result_path, bins = 10, file_name='2d_plot_brightest_voxel')
 
 
@@ -365,7 +374,7 @@ class Judge:
         sparsity_data        = num_zero_data / (self.image_size_x * self.image_size_y)
 
         # plot using the functions in plotting.py
-        plot_histogram(sparsity_samples, sparsity_data, bin_centers = np.arange(0,1.1,0.05), plot_color = self.plot_color, error_color = self.error_color, title = 'Sparsity', x_label = 'Sparsity', y_label = 'Events', filename = 'histogram_sparsity', result_path = self.result_path, data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
+        plot_histogram(sparsity_samples, sparsity_data, bin_centers = np.arange(0.45,1.05,0.025), plot_color = self.plot_color, error_color = self.error_color, title = 'Sparsity', x_label = 'Sparsity', y_label = 'Events', filename = 'histogram_sparsity', result_path = self.result_path, data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
 
 
 
@@ -381,7 +390,7 @@ class Judge:
         second_brightest_voxel_data     = np.partition(data_flat, -2, axis=1)[:, -2]  
         
         # plot using the function in plotting.py
-        plot_histogram(second_brightest_voxel_samples/1000, second_brightest_voxel_data/1000, bin_centers = np.arange(0,50,0.5), plot_color = self.plot_color, error_color = self.error_color, title = '2nd~Brightest~Voxel', x_label = 'Energy [GeV]', y_label = 'Events', filename = 'histogram_second_brightest_voxel', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
+        plot_histogram(second_brightest_voxel_samples/1000, second_brightest_voxel_data/1000, bin_centers = np.arange(0,45,0.5), plot_color = self.plot_color, error_color = self.error_color, title = '2nd~Brightest~Voxel', x_label = 'Energy [GeV]', y_label = 'Events', filename = 'histogram_second_brightest_voxel', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
         if (self.thickness_bin is None and self.distance_bin is None): plot_2d_parameterspace(second_brightest_voxel_data/1000, second_brightest_voxel_samples/1000, self.conditions, self.sample_conditions, title='2nd~Brightest~Voxel', colorbar_label='Energy [GeV]', result_path=self.result_path, bins = 10, file_name='2d_plot_second_brightest_voxel')
 
 
@@ -459,8 +468,8 @@ class Judge:
         r9_samples = calculate_r9(self.samples, image_size_x=self.image_size_x, image_size_y = self.image_size_y).squeeze()
         r9_data = calculate_r9(self.data, image_size_x=self.image_size_x, image_size_y = self.image_size_y).squeeze()
 
-        plot_histogram(r9_samples, r9_data, bin_centers = np.arange(0.40, 1.1, 0.025),  plot_color = self.plot_color, error_color = self.error_color, title = 'R9', x_label = 'R9', y_label = 'Events', filename = 'histogram_r9', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
-        if (self.thickness_bin is None and self.distance_bin is None): plot_2d_parameterspace(r9_data, r9_samples, self.conditions, self.sample_conditions, title='R9', colorbar_label='R9', result_path=self.result_path, bins = 10, file_name='2d_plot_r9')
+        plot_histogram(r9_samples, r9_data, bin_centers = np.arange(0.40, 1.1, 0.025),  plot_color = self.plot_color, error_color = self.error_color, title = 'R_9', x_label = r'$R_9$', y_label = 'Events', filename = 'histogram_r9', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
+        if (self.thickness_bin is None and self.distance_bin is None): plot_2d_parameterspace(r9_data, r9_samples, self.conditions, self.sample_conditions, title='R_9', colorbar_label=r'$R_9$', result_path=self.result_path, bins = 10, file_name='2d_plot_r9')
 
 
 
@@ -511,7 +520,7 @@ class Judge:
         distances_samples = distance_brigtest_x_brightest(self.samples, x = 4, image_size_x=self.image_size_x, image_size_y=self.image_size_y)
         distances_data    = distance_brigtest_x_brightest(self.data, x = 4, image_size_x=self.image_size_x, image_size_y=self.image_size_y)
 
-        plot_histogram(distances_samples, distances_data, bin_centers = np.arange(0, 10, 1),  plot_color = self.plot_color, error_color = self.error_color, title = 'Distance~1st~&~4th~Brightest', x_label = 'Distance [Crystal Width]', y_label = 'Events', filename = 'histogram_distance_fourth_brightest', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
+        plot_histogram(distances_samples, distances_data, bin_centers = np.arange(1, 9, 1),  plot_color = self.plot_color, error_color = self.error_color, title = 'Distance~1st~&~4th~Brightest', xlim = (0.00,9.7), x_label = 'Distance [Crystal Width]', y_label = 'Events', filename = 'histogram_distance_fourth_brightest', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
         if (self.thickness_bin is None and self.distance_bin is None): plot_2d_parameterspace(distances_data, distances_samples, self.conditions, self.sample_conditions, title='Distance~1st~&~4th~Brightest', colorbar_label='Distance [Crystal Width]', result_path=self.result_path, bins = 10, file_name='2d_plot_fourth_distance')
 
 
@@ -535,12 +544,12 @@ class Judge:
 
         ''' Function for running the clustering algorithm DBSCAN on the dataset, see clustering.py '''
 
-        from .clustering import clustering_batch
+        from clustering import clustering_batch
 
         num_clusters_data = clustering_batch(self.data, eps = 1.5, min_samples=1.0, threshold=400)
         num_clusters_samples = clustering_batch(self.samples, eps = 1.5, min_samples=1.0, threshold=400)
 
-        plot_histogram(num_clusters_samples, num_clusters_data, bin_centers = np.arange(-0.5, 7, 1),  plot_color = self.plot_color, error_color = self.error_color, title = 'Counted Cluster(s)', x_label = '# Cluster', y_label = 'Events', filename = 'histogram_clustering', result_path = self.result_path,  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
+        plot_histogram(num_clusters_samples, num_clusters_data, bin_centers = np.arange(1, 6, 1),  plot_color = self.plot_color, error_color = self.error_color, title = 'Counted~Cluster(s)', x_label = 'Number of DBSCAN clusters', y_label = 'Events', filename = 'histogram_clustering', result_path = self.result_path, xlim =(0.00,5.70),  data_conditions = self.conditions, sample_conditions = self.sample_conditions, thickness_range = self.thickness_range, bin_comparison_thickness = self.bin_comparison_thickness, distance_range = self.distance_range, bin_comparison_distance = self.bin_comparison_distance)
         if (self.thickness_bin is None and self.distance_bin is None): plot_2d_parameterspace(num_clusters_data, num_clusters_samples, self.conditions, self.sample_conditions, title='Counted~Cluster(s)', colorbar_label='Counted Cluster(s)', result_path=self.result_path, bins = 10, file_name='2d_plot_num_clusters')
 
     
@@ -624,7 +633,7 @@ class Judge:
 
                 im = ax.imshow(image, cmap=cmap, norm=norm)
 
-                if ((i-1) % 3 == 0): ax.set_ylabel("Fast Sim.", loc = 'center')
+                if ((i-1) % 3 == 0): ax.set_ylabel("ParaFlow", loc = 'center')
 
                 # Remove ticks and tick labels from the main image plot
                 ax.set_xticks([])
@@ -728,7 +737,7 @@ class Judge:
 
                 im = ax.imshow(image, cmap=cmap, norm=norm)
 
-                if ((i-1) % 3 == 0): ax.set_ylabel("Fast Sim.", loc = 'center')
+                if ((i-1) % 3 == 0): ax.set_ylabel("ParaFlow", loc = 'center')
 
                 # Remove ticks and tick labels from the main image plot
                 ax.set_xticks([])
@@ -737,6 +746,9 @@ class Judge:
 
                 ax = fig.add_subplot(6,3, subplot_idx[i-1] + 3)
                 geant4_im = ax.imshow(random_geant4_image, cmap=cmap, norm=norm)
+
+                ax.set_xticks([])
+                ax.set_yticks([])
 
                 if ((i-1) % 3 == 0): ax.set_ylabel("Geant4", loc = 'center')
 
@@ -788,7 +800,7 @@ class Judge:
 
         # Plot the correlation matrix as a heatmap for samples
         ax = fig.add_subplot(1,2,1)
-        ax.set_title("FastSim", c="navy", fontweight = 'bold')
+        ax.set_title("ParaFlow", c="navy", fontweight = 'bold')
         im = ax.imshow(correlation_matrix_samples, cmap="viridis", vmin=0, vmax=1)
         fig.colorbar(im, ax=ax)
 
