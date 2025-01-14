@@ -334,7 +334,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
         # legend with statistical scores
         legend_properties = {'weight':'bold', 'size':27}
-        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, handletextpad=0, loc = 'lower left', labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0.18, 0.0075), frameon = True, fancybox = False)
+        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, handletextpad=0, loc = 'best', labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0,0.30, 1, 0.35), frameon = True, fancybox = False)
         
         # Customize the frame around the legend
         frame = second_legend.get_frame()
@@ -498,7 +498,7 @@ def plot_histogram(data_samples, data_geant4, bin_centers, plot_color, error_col
 
         # legend with statistical scores
         legend_properties = {'weight':'bold', 'size':27}
-        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, loc = 'lower left', handletextpad=0, labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0.18, 0.0075), frameon = True, fancybox = False)
+        second_legend = ax1.legend(handles = custom_handles_legend2, handlelength=0, loc = 'best', handletextpad=0, labelcolor = 'linecolor', fontsize = 27, prop = legend_properties, facecolor = "white", framealpha = 1, edgecolor = 'black', bbox_to_anchor=(0,0.30, 1, 0.35), frameon = True, fancybox = False)
         for item in second_legend.legend_handles:
             item.set_visible(False)
         frame = second_legend.get_frame()
@@ -569,7 +569,7 @@ def plot_2d_parameterspace(data_array, samples_array, data_params, samples_param
     fig, (ax1, ax2, ax3) = plt.subplots(nrows = 1, ncols = 3, width_ratios = [3.5,4.5,4.5], figsize = (30,8), sharey = True, sharex=True)
 
 
-    fig.suptitle("$\\bf{{ParaFlow}}$  "  + f"$\\it{{{title}~-~Parameter~Space~Visualisation}}$", x = 0.1, y = 1.05, c="black", fontsize = 45, ha = 'left', va = 'top')
+    fig.suptitle("$\\bf{{ParaFlow}}$  "  + f"$\\it{{{title}~-~Parameter~Space~Visualization}}$", x = 0.1, y = 1.05, c="black", fontsize = 45, ha = 'left', va = 'top')
 
     im = ax1.imshow(bin_means_samples.T, origin='lower', aspect='auto',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
@@ -595,7 +595,7 @@ def plot_2d_parameterspace(data_array, samples_array, data_params, samples_param
 
     # Samples
     im = ax3.imshow(difference, origin='lower', aspect='auto',
-               extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], vmin=-5, vmax=5, cmap='bwr')
+               extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], vmin=-6, vmax=6, cmap='bwr')
     ax3.set_xlabel(r"Thickness Iron [$X_0$]", fontsize = 40)
     cbar = fig.colorbar(im, ax=ax3)
     cbar.set_label('(MC - ParaFlow)/MC [%]', fontsize = 35)
